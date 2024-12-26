@@ -1,43 +1,46 @@
 package services
 
 import (
-	serverSchema "Load_Balancer_Server/models"
 	"context"
 	"fmt"
 	redis "github.com/redis/go-redis/v9"
 )
 
-func getItem(client *redis.Client, domainName string) (serverSchema.ServerData, error) {
-	ctx := context.Background()
-	var val serverSchema.ServerData
+var client *redis.Client
 
-	// data, err := client.Get(ctx, domainName).Result()
-	// if err != nil {
-	// 	return val, err
-	// }
+var ctx = context.Background()
 
-	// // Unmarshal the JSON string into the struct
-	// err = json.Unmarshal([]byte(data), &val)
-	// if err != nil {
-	// 	return val, fmt.Errorf("error unmarshalling JSON: %w", err)
-	// }
-	// Use .Scan to decode directly
-
-	err := client.Get(ctx, domainName).Scan(&val)
+func GetOptimalServer(zSetKey string) (string, error) {
+	optimalServer, err := client.ZRangeWithScores(ctx, zSetKey, 0, 0).Result()
 	if err != nil {
-		return val, fmt.Errorf("error scanning Redis data: %w", err)
+		return "", fmt.Errorf("Error in retrieving top server from ZSET : %w", err)
 	}
 
-	return val, nil
+	if len(optimalServer) == 0 {
+		return "", fmt.Errorf("No Healthy server found : %s", zSetKey)
+	}
+
+	IP_Addr := optimalServer[0]
+
+	return IP_Addr.Member.(string), nil
 }
 
-func RedisClient() {
-	client := redis.NewClient(&redis.Options{
+func UpdateActiveCount(zSetKey string, IP_Addr string, updateVal float64) (float64, error) {
+	newVal, err := client.ZIncrBy(ctx, zSetKey, updateVal, IP_Addr).Result()
+	if err != nil {
+		return -1, err
+	}
+	return newVal, nil
+}
+
+func InitRedisClient() {
+	client = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,
 		Protocol: 2,
 	})
+	fmt.Println("Initialised Redis Client.")
 
 	// opt, err:= redis.ParseURL("URL")
 	// if err != nil {
@@ -45,10 +48,15 @@ func RedisClient() {
 	// }
 	// client := redis.NewClient(opt)
 
-	val, err := getItem(client, "www.google.com")
-	if err != nil {
-		panic(err)
-	}
+	// data, err := GetOptimalServer("www.google.com")
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	fmt.Println(val.IpAddr)
+	// data, err := UpdateActiveCount("www.google.com", "192.168.2.2", -1)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// fmt.Printf("Ip Address : %s", data)
 }

@@ -3,18 +3,47 @@ package main
 import (
 	redisDB "Load_Balancer_Server/services"
 	"fmt"
-	// "log"
-	// "github.com/gofiber/fiber/v2"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
 )
 
+type LoadBalancer struct {
+	Port string
+}
+
+func (lb *LoadBalancer) serveProxy(rw http.ResponseWriter, r *http.Request) {
+	optimalServer, err := redisDB.GetOptimalServer("www.google.com")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Optimal server : %s\n", optimalServer)
+	serverURL, err := url.Parse(optimalServer)
+	proxy := httputil.NewSingleHostReverseProxy(serverURL)
+	proxy.ServeHTTP(rw, r)
+}
+
+var lb *LoadBalancer
+
+func InitLoadBalancer() {
+	lb = &LoadBalancer{Port: "5000"}
+}
+
+func redirectRequest(rw http.ResponseWriter, r *http.Request) {
+	lb.serveProxy(rw, r)
+}
+
 func main() {
-	// app := fiber.New()
+	fmt.Println("Starting Load Balancer...")
 
-	// app.Get("/", func(c *fiber.Ctx) error {
-	// 	return c.SendString("Hello, Fiber!")
-	// })
+	redisDB.InitRedisClient()
 
-	// log.Fatal(app.Listen(":8080"))
-	fmt.Print("Hello")
-	redisDB.RedisClient()
+	InitLoadBalancer()
+
+	http.HandleFunc("/", redirectRequest)
+
+	err := http.ListenAndServe(":"+lb.Port, nil)
+	if err != nil {
+		panic(err)
+	}
 }
