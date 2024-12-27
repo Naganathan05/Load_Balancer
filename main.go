@@ -77,9 +77,7 @@ func main() {
 	fmt.Println("Starting Load Balancer...")
 
 	redisDB.InitRedisClient()
-
 	InitLoadBalancer()
-
 	http.HandleFunc("/", redirectRequest)
 
 	err := http.ListenAndServe(":"+lb.Port, nil)

@@ -13,15 +13,14 @@ var ctx = context.Background()
 func GetOptimalServer(zSetKey string) (string, error) {
 	optimalServer, err := client.ZRangeWithScores(ctx, zSetKey, 0, 0).Result()
 	if err != nil {
-		return "", fmt.Errorf("Error in retrieving top server from ZSET : %w", err)
+		return "", fmt.Errorf("error in retrieving top server from ZSET : %w", err)
 	}
 
 	if len(optimalServer) == 0 {
-		return "", fmt.Errorf("No Healthy server found : %s", zSetKey)
+		return "", fmt.Errorf("no Healthy server found : %s", zSetKey)
 	}
 
 	IP_Addr := optimalServer[0]
-
 	return IP_Addr.Member.(string), nil
 }
 
@@ -52,11 +51,4 @@ func InitRedisClient() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-
-	// data, err := UpdateActiveCount("www.google.com", "192.168.2.2", -1)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// fmt.Printf("Ip Address : %s", data)
 }
