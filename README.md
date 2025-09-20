@@ -1,2 +1,2 @@
-# Load_Balancer_Server
-Server code for Load Balancer feature in Peek Balancer.
+# Load_Balancer
+Load balancer that works based on least connections algorithm. Utilized `Redis Sorted Sets` data structure to track active requests count.
